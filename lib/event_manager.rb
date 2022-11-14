@@ -1,4 +1,5 @@
 require 'csv'
+require 'erb'
 require 'google/apis/civicinfo_v2'
 
 def clean_zipcode(zipcode)
@@ -17,18 +18,25 @@ end
 def extract_officials_info(zipcode)
   civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
   civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
-  representatives_info = civic_info.representative_info_by_address(
-    address: zipcode,
-    levels: 'country',
-    roles: %w[legislatorUpperBody legislatorLowerBody]
-  )
-  representatives_info.officials
+  begin
+    representatives_info = civic_info.representative_info_by_address(
+      address: zipcode,
+      levels: 'country',
+      roles: %w[legislatorUpperBody legislatorLowerBody]
+    )
+    representatives_info.officials
+  rescue
+    nil
+  end
 end
 
-def create_form_letter(attendee_name, officials_names)
-  template_letter = File.read('form_letter.html')
-  attendee_letter = File.new("#{attendee_name}_letter.html", 'w')
-  attendee_letter.puts(template_letter.gsub('FIRST_NAME', attendee_name).gsub('LEGISLATORS', officials_names))
+def create_form_letter(attendee_info, officials_info)
+  template = File.read('form_letter.erb')
+  letter = ERB.new(template)
+  puts letter.result(binding)
+  letter_file = File.open("letters/ID#{attendee_info[0]}_letter", 'w')
+  letter_file.write(letter.result(binding))
+  letter_file.close
 end
 
 puts 'Event Manager initialized!'
@@ -36,6 +44,7 @@ puts 'There is no data to process!' if File.exist?('event_attendees.csv') == fal
 if File.exist?('event_attendees.csv')
   content = CSV.open('event_attendees.csv', headers: true, header_converters: :symbol)
 end
+Dir.mkdir('letters') unless Dir.exist?('letters')
 content.each do |row|
   row[:zipcode] = clean_zipcode(row[:zipcode])
   print "#{row[:first_name]} #{row[:zipcode]} "
@@ -45,5 +54,5 @@ content.each do |row|
     print officials_names = 'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
   end
   puts ''
-  create_form_letter(row[:first_name], officials_names)
+  create_form_letter(row, extract_officials_info(row[:zipcode]))
 end

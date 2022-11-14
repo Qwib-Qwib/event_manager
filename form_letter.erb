@@ -3,7 +3,7 @@
     <title>Thank You!</title>
   </head>
   <body>
-    <h1>Thanks <%= attendee_name %>!</h1>
+    <h1>Thanks <%= attendee_info[:first_name] %>!</h1>
     <p>Thanks for coming to our conference.  We couldn't have done it without you!</p>
 
     <p>
@@ -15,8 +15,20 @@
       <% if officials_info.kind_of?(Array) %>
         <tr><th>Name</th><th>Website</th></tr>
         <% officials_info.each do |official| %>
-          <tr><td><% print officials_info.name %></td><td><% print officials_info.urls.first %></td></tr>
-      <<% else puts 'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials' %>
+          <tr>
+            <td>
+              <% next if official.name.nil? %>
+              <%= official.name if official.name.nil? == false %>
+            </td>
+            <td>
+              <%= 'N/A' if official.urls.nil? %>
+              <%= official.urls.first if official.urls.nil? == false %>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <%= 'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials' %>
+      <% end %>
     </table>
   </body>
   </html>
