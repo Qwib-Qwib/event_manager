@@ -56,6 +56,34 @@ def create_form_letter(attendee_info, officials_info)
   letter_file.close
 end
 
+def find_busiest_registration_hours(attendee_table)
+  print_busiest_hours(record_busiest_hours(attendee_table))
+end
+
+def record_busiest_hours(attendee_table)
+  attendee_table.rewind
+  list = establish_hours_list(attendee_table)
+  max_hour_count = list.max { |pair1, pair2| pair1[1] <=> pair2[1] }
+  list.delete_if { |_key, value| value != max_hour_count[1] }
+end
+
+def establish_hours_list(attendee_table)
+  attendee_table.each_with_object({}) do |row, hours_list|
+    hour = Time.strptime(row[:regdate].split(' ')[1], '%H:%M').hour
+    hours_list[hour] += 1 if hours_list.key?(hour) == true
+    hours_list[hour] = 1 if hours_list.key?(hour) == false
+  end
+end
+
+def print_busiest_hours(hours_hash)
+  total_hours = hours_hash.keys
+  if total_hours.size == 1
+    puts "Looks like the best hour for registrations is: #{total_hours[0]}."
+  else
+    puts "Looks like the best hours for registrations are: #{hours_hash.keys.to_s.delete('[').delete(']')}."
+  end
+end
+
 puts 'Event Manager initialized!'
 puts 'There is no data to process!' if File.exist?('event_attendees.csv') == false
 if File.exist?('event_attendees.csv')
@@ -74,3 +102,4 @@ content.each do |row|
   puts ''
   create_form_letter(row, extract_officials_info(row[:zipcode]))
 end
+find_busiest_registration_hours(content)
