@@ -56,8 +56,9 @@ def create_form_letter(attendee_info, officials_info)
   letter_file.close
 end
 
-def find_busiest_registration_hours(attendee_table)
+def find_busiest_registration_times(attendee_table)
   print_busiest_hours(record_busiest_hours(attendee_table))
+  print_busiest_days(record_busiest_days(attendee_table))
 end
 
 def record_busiest_hours(attendee_table)
@@ -84,6 +85,43 @@ def print_busiest_hours(hours_hash)
   end
 end
 
+def record_busiest_days(attendee_table)
+  attendee_table.rewind
+  list = establish_days_list(attendee_table)
+  max_day_count = list.max { |pair1, pair2| pair1[1] <=> pair2[1] }
+  list.delete_if { |_key, value| value != max_day_count[1] }
+end
+
+def establish_days_list(attendee_table)
+  attendee_table.each_with_object({}) do |row, days_list|
+    day_code = Date.strptime(row[:regdate].split(' ')[0], '%D').wday
+    day = find_day(day_code)
+    days_list[day] += 1 if days_list.key?(day) == true
+    days_list[day] = 1 if days_list.key?(day) == false
+  end
+end
+
+def find_day(day_code)
+  case day_code
+  when 0 then 'Sunday'
+  when 1 then 'Monday'
+  when 2 then 'Tuesday'
+  when 3 then 'Wednesday'
+  when 4 then 'Thursday'
+  when 5 then 'Friday'
+  when 6 then 'Saturday'
+  end
+end
+
+def print_busiest_days(days_hash)
+  total_days = days_hash.keys
+  if total_days.size == 1
+    puts "Looks like the best day for registrations is: #{total_days[0]}."
+  else
+    puts "Looks like the best days for registrations are: #{total_days.keys.to_s.delete('[').delete(']')}."
+  end
+end
+
 puts 'Event Manager initialized!'
 puts 'There is no data to process!' if File.exist?('event_attendees.csv') == false
 if File.exist?('event_attendees.csv')
@@ -102,4 +140,4 @@ content.each do |row|
   puts ''
   create_form_letter(row, extract_officials_info(row[:zipcode]))
 end
-find_busiest_registration_hours(content)
+find_busiest_registration_times(content)
