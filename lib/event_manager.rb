@@ -63,17 +63,25 @@ end
 
 def record_busiest_hours(attendee_table)
   attendee_table.rewind
-  list = establish_hours_list(attendee_table)
-  max_hour_count = list.max { |pair1, pair2| pair1[1] <=> pair2[1] }
-  list.delete_if { |_key, value| value != max_hour_count[1] }
+  list = retrieve_hours_and_generate_list(attendee_table)
+  keep_best_results(list)
 end
 
-def establish_hours_list(attendee_table)
+def keep_best_results(list)
+  max_item_with_count = list.max { |pair1, pair2| pair1[1] <=> pair2[1] }
+  list.delete_if { |_key, value| value != max_item_with_count[1] }
+end
+
+def retrieve_hours_and_generate_list(attendee_table)
   attendee_table.each_with_object({}) do |row, hours_list|
     hour = Time.strptime(row[:regdate].split(' ')[1], '%H:%M').hour
-    hours_list[hour] += 1 if hours_list.key?(hour) == true
-    hours_list[hour] = 1 if hours_list.key?(hour) == false
+    generate_list(hours_list, hour)
   end
+end
+
+def generate_list(list, time_item)
+  list[time_item] += 1 if list.key?(time_item) == true
+  list[time_item] = 1 if list.key?(time_item) == false
 end
 
 def print_busiest_hours(hours_hash)
@@ -87,17 +95,15 @@ end
 
 def record_busiest_days(attendee_table)
   attendee_table.rewind
-  list = establish_days_list(attendee_table)
-  max_day_count = list.max { |pair1, pair2| pair1[1] <=> pair2[1] }
-  list.delete_if { |_key, value| value != max_day_count[1] }
+  list = retrieve_days_and_generate_list(attendee_table)
+  keep_best_results(list)
 end
 
-def establish_days_list(attendee_table)
+def retrieve_days_and_generate_list(attendee_table)
   attendee_table.each_with_object({}) do |row, days_list|
     day_code = Date.strptime(row[:regdate].split(' ')[0], '%D').wday
     day = find_day(day_code)
-    days_list[day] += 1 if days_list.key?(day) == true
-    days_list[day] = 1 if days_list.key?(day) == false
+    generate_list(days_list, day)
   end
 end
 
